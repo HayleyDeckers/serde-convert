@@ -1,5 +1,6 @@
 use crate::formats::{MyDeserializer, MySerializer};
 use anyhow::Result;
+use serde_json::ser::PrettyFormatter;
 use std::io::{Read, Write};
 
 pub struct Des<R: Read> {
@@ -18,13 +19,13 @@ impl<R: Read> MyDeserializer<R> for Des<R> {
 }
 
 pub struct Ser<W: Write> {
-    inner: serde_json::Serializer<W>,
+    inner: serde_json::Serializer<W, PrettyFormatter<'static>>,
 }
 
 impl<W: Write> MySerializer<W> for Ser<W> {
     fn new(writer: W) -> Self {
         Self {
-            inner: serde_json::Serializer::new(writer),
+            inner: serde_json::Serializer::pretty(writer),
         }
     }
     fn serializer(&mut self) -> impl serde::Serializer {
