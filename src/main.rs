@@ -57,7 +57,8 @@ fn convert<R: Read, W: Write>(from: Format, to: Format, reader: R, writer: W) ->
         let de = from.deserializer();
         let se = to.serializer();
         //this map err is a bit meh but works.
-        serde_transcode::transcode(de, se).map_err(|e| anyhow!("{e:?}"))?;
+        serde_transcode::transcode(de, se)
+            .map_err(|e| anyhow!("conversion failed with error \"{e}\""))?;
         to.flush()
     }
 
