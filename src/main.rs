@@ -32,21 +32,25 @@ impl FromStr for Format {
     }
 }
 
-/// Convert between various config file-formats
+/// Convert between various config file-formats.
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
     /// file to convert
-    #[arg(long)]
-    file: String,
+    #[arg(long, short)]
+    input: String,
 
     /// Format to convert into
-    #[arg(long)]
+    #[arg(long, short)]
     to: Format,
 
     /// Format of the input file, will be guessed based on extension of the input file if not given
-    #[arg(long)]
+    #[arg(long, short)]
     from: Option<Format>,
+
+    /// automatically determine output filename and write to it instead of stdout
+    #[arg(long, short)]
+    auto: bool,
 }
 
 fn convert<R: Read, W: Write>(from: Format, to: Format, reader: R, writer: W) -> Result<()> {
@@ -108,7 +112,7 @@ fn convert<R: Read, W: Write>(from: Format, to: Format, reader: R, writer: W) ->
 
 fn main() -> Result<()> {
     let args = Args::parse();
-    let filename = PathBuf::from(args.file);
+    let filename = PathBuf::from(args.input);
     let from = if let Some(from) = args.from {
         from
     } else {
@@ -121,10 +125,15 @@ fn main() -> Result<()> {
             .map_err(|_| anyhow::anyhow!("unsupported extension"))?
     };
     let reader = BufReader::new(File::open(&filename).context("failed to open file")?);
-    let out_file = filename.with_extension(format!("{:?}", args.to).to_lowercase());
+
     if args.to != from {
-        let writer = File::create(out_file).context("failed to make output file")?;
-        convert(from, args.to, reader, writer)
+        if args.auto {
+            let out_file = filename.with_extension(format!("{:?}", args.to).to_lowercase());
+            let writer = File::create(out_file).context("failed to make output file")?;
+            convert(from, args.to, reader, writer)
+        } else {
+            convert(from, args.to, reader, std::io::stdout())
+        }
     } else {
         Err(anyhow::anyhow!("Input and output format are the same"))
     }
